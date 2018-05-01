@@ -515,6 +515,8 @@ class Polygon:
         self.temp_head = None
         self.current = None
         self.vertex_list = []
+        self.normal_vertex_list = []
+        self.flipped_vertex_list = []
         self.flipped = False
         
     def get_head(self):
@@ -532,6 +534,8 @@ class Polygon:
             self.temp_head = v
             self.current = v
             self.vertex_list.append(v)
+            self.normal_vertex_list.append(v)
+            self.flipped_vertex_list.append(v)
             v.set_index(0)
             v.set_prev(v)
             v.set_next(v)
@@ -541,6 +545,8 @@ class Polygon:
             v.set_index(len(self.vertex_list))
             # add to master list
             self.vertex_list.append(v)
+            self.normal_vertex_list.append(v)
+            self.flipped_vertex_list.insert(1, v)
             # set reference to polygon object
             v.set_polygon(self)
 
@@ -610,16 +616,17 @@ class Polygon:
         v2 = None
         v1 = None
         v0 = None
-        for i in [j for j in range(len(self.vertex_list))] + [0, 1]:
+        for i in [j for j in range(len(self.normal_vertex_list))] + [0, 1]:
             # 3 width sliding window
             v2 = v1
             v1 = v0
-            v0 = self.vertex_list[i]
+            v0 = self.normal_vertex_list[i]
     
             if v2 is not None:
                 v1.next = v0
                 v1.prev = v2
-
+        
+        self.vertex_list = self.normal_vertex_list
         self.flipped = False
 
     def flip_order(self):
@@ -627,17 +634,37 @@ class Polygon:
         v2 = None
         v1 = None
         v0 = None
-        for i in [1, 0] + [j for j in range(len(self.vertex_list)-1, -1, -1)]:
+        for i in [j for j in range(len(self.flipped_vertex_list))] + [0, 1]:
             # 3 width sliding window
             v2 = v1
             v1 = v0
-            v0 = self.vertex_list[i]
-            
+            v0 = self.flipped_vertex_list[i]
+
             if v2 is not None:
                 v1.next = v0
                 v1.prev = v2
-        
+                v0.index = i
+                
+        self.vertex_list = self.flipped_vertex_list
         self.flipped = True
+
+
+    # def flip_order(self):
+    #     # reverts polygon to original with reversed order
+    #     v2 = None
+    #     v1 = None
+    #     v0 = None
+    #     for i in [1, 0] + [j for j in range(len(self.vertex_list)-1, -1, -1)]:
+    #         # 3 width sliding window
+    #         v2 = v1
+    #         v1 = v0
+    #         v0 = self.vertex_list[i]
+    #
+    #         if v2 is not None:
+    #             v1.next = v0
+    #             v1.prev = v2
+    #
+    #     self.flipped = True
         
 class Vertex:
     
@@ -738,6 +765,9 @@ def MWTriangulation2(polygon, canvas=None, flip=True):
         flip = -1
     else:
         flip = 1
+        
+    final_diags = []
+    ids = []
     
     f_table = Table2D()  # for i, j this contains the metric value
     k_table = Table2D()  # for i, j this contains the k that had the best metric value
@@ -761,12 +791,15 @@ def MWTriangulation2(polygon, canvas=None, flip=True):
             # check for i or j being the same as current
             if str(current) == str(i) or str(current) == str(j):
                 continue
-            check1 = Left(i, j, current)
-            check2 = Diagonal(i, current)
-            check3 = Diagonal(current, j)
-            check4 = str(i.prev) == str(current)
-            check5 = str(j.next) == str(current)
-            if check1 and (check2 or check4) and (check3 or check5):
+            # check1 = Left(i, j, current)
+            # check2 = Diagonal(i, current)
+            # check3 = Diagonal(current, j)
+            # check4 = str(i.prev) == str(current)
+            # check5 = str(j.next) == str(current)
+            # if check1 and (check2 or check4) and (check3 or check5):
+            if Left(i, j, current) and \
+                (str(i.prev) == str(current) or Diagonal(i, current)) \
+                and (str(j.next) == str(current) or Diagonal(current, j)):
                 ks.append(current)
 
             current = current.prev  # iterate to next vertex (, prev in this case)
@@ -775,7 +808,7 @@ def MWTriangulation2(polygon, canvas=None, flip=True):
             print("empty ks")
             print("### this should not happend ###")
             return
-
+        
         metric = 0
         best_k = None
         for k in ks:
@@ -811,6 +844,14 @@ def MWTriangulation2(polygon, canvas=None, flip=True):
     
     length_of_poly = len(polygon.vertex_list)
     diags = []
+
+    def draw_line_from_index(i, j):
+        vi = polygon[i]
+        vj = polygon[j]
+        if canvas is not None:
+            id = canvas.create_line(vi[X], flip * vi[Y], vj[X], flip * vj[Y], fill="dark green")
+            ids.append(id)
+        # diags.append((vi, vj))
     
     def mwt2_traverse(i, j):
         k = k_table[str(i)].get(str(j), None)
@@ -818,20 +859,23 @@ def MWTriangulation2(polygon, canvas=None, flip=True):
             return
         is_adjacent = lambda x, y: (int(x)+1)%length_of_poly == int(y) or \
                                    (int(y)+1)%length_of_poly == int(x)
-        print(i, j, k)
+        # print(i, j, k)
         if not is_adjacent(i, k):
             print(i, k)
             diags.append((str(i), str(k)))
+            draw_line_from_index(int(i), int(k))
         if not is_adjacent(k, j):
             print(k, j)
             diags.append((str(k), str(j)))
+            draw_line_from_index(int(k), int(j))
         mwt2_traverse(i, k)
         mwt2_traverse(k, j)
         return
     
+
     mwt2(polygon.head, polygon.head.next)
     mwt2_traverse(polygon.head, polygon.head.next)#, first_call=True)
     print(diags)
 
-    return
+    return ids
     

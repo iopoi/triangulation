@@ -51,6 +51,10 @@ class App:
     # reset methods - active on button click
     
     def reset_triangulation(self):
+        if not self.finish_polygon:
+            print("Cannot reset triangle, polygon length is 0")
+            return
+        
         # reset polygon
         self.polygon.reset_order()
         if not self.polygon.check_counter_clockwise():
@@ -68,6 +72,8 @@ class App:
     
         self.triangulated = False
     
+        print("Reset Triangulation")
+        
         pass
 
     def reset_polygon(self):
@@ -83,9 +89,11 @@ class App:
         self.draw_line_prev = None
         self.motion_line_id = None
         self.finish_dot_id = None
-        self.finish_polygon = None
-    
+        self.finish_polygon = False
+        
         self.polygon = Polygon()
+    
+        print("Reset Polygon")
     
         pass
     
@@ -140,7 +148,7 @@ class App:
             return
         
         if self.finish_polygon is True:
-            ids = MWTriangulation2b(self.polygon, canvas=self.C, flip=True)
+            ids = MWTriangulation(self.polygon, canvas=self.C, flip=True)
             # keep track of drawn items
             self.triangulation_draw_ids += ids
             self.triangulated = True
@@ -154,9 +162,9 @@ class App:
         
         # set iterator if it is None, this should be the first step in iteration
         if self.iterMWT is None and self.finish_polygon is True:
-            table, history, max_depth = MWTriangulation2c_iter(self.polygon, canvas=self.C, flip=True)
-            self.iterMWT = mwt2e_traverse(self.polygon.head, self.polygon.head.next,
-                                          self.polygon, self.C, table, history=history, depth=max_depth)
+            table, history, max_depth = MWTriangulation_iter(self.polygon, canvas=self.C, flip=True)
+            self.iterMWT = MWTriangulation_iter_traverse(self.polygon.head, self.polygon.head.next,
+                                                         self.polygon, self.C, table, history=history, depth=max_depth)
         
         # each step
         r = self.iterMWT.__next__()
@@ -221,6 +229,7 @@ class App:
         click_string_debug = 'click {}, {}'.format(x, y)
         if self.finish_polygon is True:
             click_string_debug = 'post polygon ' + click_string_debug
+            print(click_string_debug)
             return
         print(click_string_debug)
         

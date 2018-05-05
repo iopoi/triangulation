@@ -136,7 +136,7 @@ def draw_dot(canvas, x, y, remove_id=None, color="green", width=2, flip=False):
         canvas.after(400, canvas.delete, remove_id)
 
     id = canvas.create_oval(x - 5, flip*y - 5, x + 5, flip*y + 5, fill=color, outline=color, width=width)
-    print("dot", id, color, "coord:", x, flip*y)
+    # print("dot", id, color, "coord:", x, flip*y)  # debug
     return id
 
 
@@ -147,7 +147,7 @@ def Triangulate(polygon, canvas=None, flip=True):
     else:
         flip = 1
     
-    print("check - counterclockwise = ", polygon.check_counter_clockwise())
+    print("check - counterclockwise =", polygon.check_counter_clockwise())
     if not polygon.check_counter_clockwise():
         print("not clounterclockwise - function returned")
         return
@@ -156,8 +156,8 @@ def Triangulate(polygon, canvas=None, flip=True):
     n = len(polygon.vertex_list) # number of vertices; shrinks to 3
     earfound = False # for debugging and error detection only
     
-    print("head loop")
-    polygon.head.print_loop()
+    # print("head loop")  # debug
+    # polygon.head.print_loop()  # debug
     
     debug_v2_id = None
     
@@ -168,11 +168,11 @@ def Triangulate(polygon, canvas=None, flip=True):
     
     polygon.temp_head = polygon.head
     
-    print("\nnewpath\n")
+    print("newpath")
     # Each step of outer loop removes one ear.
     
     while n > 3:
-        print(n)
+        # print('n =', n)  # debug
         
         v2 = polygon.temp_head
         debug_v2_id = draw_dot(canvas, v2.coord[X], v2.coord[Y], color="firebrick3", remove_id=debug_v2_id, flip=temp_flip)
@@ -190,8 +190,7 @@ def Triangulate(polygon, canvas=None, flip=True):
                 v0 = v1.prev
             
                 # (v1,v3) is a diagonal
-                # PrintDiagonal( v1, v3 )
-                print("diag", v1.coord, v3.coord)
+                # print("diag", v1.coord, v3.coord)  # debug
                 if canvas is not None:
                     id = canvas.create_line(v1.coord[X], flip*v1.coord[Y], v3.coord[X], flip*v3.coord[Y], fill="forest green")
                     ids.append(id)
@@ -211,8 +210,8 @@ def Triangulate(polygon, canvas=None, flip=True):
             v2 = v2.next
             debug_v2_id = draw_dot(canvas, v2.coord[X], v2.coord[Y], color="firebrick3", remove_id=debug_v2_id, flip=temp_flip)
 
-        print("debug - internal ploygon of size", n)
-        polygon.temp_head.print_loop()
+        # print("debug - internal ploygon of size", n)  # debug
+        # polygon.temp_head.print_loop()  # debug
 
         if not earfound:
             i = None
@@ -227,10 +226,11 @@ def Triangulate(polygon, canvas=None, flip=True):
             print("%%Error in Triangulate:  No ear found.\n")
             print("showpage\n%%%%EOF\n")
             raise RuntimeError("Error in Triangulate:  No ear found.")
-        
+    
     # end outer while loop
-    print("closepath stroke\n\n")
+    print("closepath stroke")
     canvas.after(1, canvas.delete, debug_v2_id)  # delete debug_v2_id from canvas
+    print([(str(temp[X]), str(temp[Y])) for temp in diags])  # debug
     return diags, ids
 
 
@@ -251,8 +251,8 @@ def iter_Triangulate(polygon, canvas=None, flip=True):
     n = len(polygon.vertex_list)  # number of vertices; shrinks to 3
     earfound = False  # for debugging and error detection only
     
-    print("head loop")
-    polygon.head.print_loop()
+    # print("head loop")  # debug
+    # polygon.head.print_loop()  # debug
     
     debug_v2_id = None
     
@@ -262,11 +262,11 @@ def iter_Triangulate(polygon, canvas=None, flip=True):
     
     polygon.temp_head = polygon.head
     
-    print("\nnewpath\n")
+    print("newpath")
     # Each step of outer loop removes one ear.
     
     while n > 3:
-        print(n)
+        print('n =', n)
         
         v2 = polygon.temp_head
         debug_v2_id = draw_dot(canvas, v2.coord[X], v2.coord[Y], color="firebrick3", remove_id=debug_v2_id, flip=temp_flip)
@@ -285,7 +285,7 @@ def iter_Triangulate(polygon, canvas=None, flip=True):
                 
                 # (v1,v3) is a diagonal
                 # PrintDiagonal( v1, v3 )
-                print("diag", v1.coord, v3.coord)
+                print("ear", str(v2), "diag", str(v1), str(v3), " -  diag coords", v1.coord, v3.coord)
                 id = None
                 if canvas is not None:
                     id = canvas.create_line(v1.coord[X], flip * v1.coord[Y], v3.coord[X], flip * v3.coord[Y],
@@ -307,8 +307,8 @@ def iter_Triangulate(polygon, canvas=None, flip=True):
             v2 = v2.next
             debug_v2_id = draw_dot(canvas, v2.coord[X], v2.coord[Y], color="firebrick3", remove_id=debug_v2_id, flip=temp_flip)
         
-        print("debug - internal ploygon of size", n)
-        polygon.temp_head.print_loop()
+        # print("debug - internal ploygon of size", n)  # debug
+        # polygon.temp_head.print_loop()  # debug
         
         if not earfound:
             i = None
@@ -325,10 +325,11 @@ def iter_Triangulate(polygon, canvas=None, flip=True):
             raise RuntimeError("Error in Triangulate:  No ear found.")
     
     # end outer while loop
-    print("closepath stroke\n\n")
+    print("closepath stroke")
     canvas.after(1, canvas.delete, debug_v2_id)
     yield True
     # return diags
+
 
 def distance(a, b):
     return sqrt((b[X]-a[X])^2+((b[Y]-a[Y])^2))
@@ -349,214 +350,6 @@ def angle(a, b, c):
     return acos(dot(vect1, vect2) / (norm(vect1) * norm(vect2)))
 
 
-
-
-# Data Structures to support predicates
-class Polygon:
-    
-    def __init__(self):
-        # the polygon starts with zero points
-        self.head = None
-        self.temp_head = None
-        self.current = None
-        self.vertex_list = []
-        self.normal_vertex_list = []
-        self.flipped_vertex_list = []
-        self.flipped = False
-        
-    def get_head(self):
-        return self.head
-    
-    def get_vertex(self, i):
-        return self.vertex_list[i]
-    
-    def __getitem__(self, item):
-        return self.vertex_list[item]
-        
-    def add_vertex(self, v):
-        if len(self.vertex_list) < 1:
-            self.head = v
-            self.temp_head = v
-            self.current = v
-            self.vertex_list.append(v)
-            self.normal_vertex_list.append(v)
-            self.flipped_vertex_list.append(v)
-            v.set_index(0)
-            v.set_prev(v)
-            v.set_next(v)
-            v.set_polygon(self)
-        else:
-            # set index
-            v.set_index(len(self.vertex_list))
-            # add to master list
-            self.vertex_list.append(v)
-            self.normal_vertex_list.append(v)
-            self.flipped_vertex_list.insert(1, v)
-            # set reference to polygon object
-            v.set_polygon(self)
-
-            current = self.current
-            next = self.current.next
-            new = v
-            
-            # set prev and next for new vertex
-            new.set_prev(current)
-            new.set_next(next)
-            # connect old prev and next to new vertex
-            current.set_next(new)
-            next.set_prev(new)
-            # set new current to new vertex
-            self.current = new
-        
-    def print_polygon(self):
-        """goes through self.vertex_list"""
-        print([v.index for v in self.vertex_list])
-            # print(v.index)
-    
-    def print_vertecies_iter(self):
-        """goes through loop starting from head"""
-        v = self.head
-        print(v, "i:", v.index, "coord:", v.coord, "ear", v.ear, "head")
-        v = v.next
-        while(v.index != 0):
-            print(v, "i:", v.index, "coord:", v.coord, "ear", v.ear)
-            v = v.next
-        print(v, "i:", v.index, "coord:", v.coord, "ear", v.ear, "should be head")
-
-    def print_vertecies_temp_iter(self):
-        """goes through loop starting from temp_head, this is safer because Triangulate reassigns pointers"""
-        v = self.temp_head
-        print(v, "i:", v.index, "coord:", v.coord, "ear", v.ear, "head")
-        v = v.next
-        while(v.index != 0):
-            print(v, "i:", v.index, "coord:", v.coord, "ear", v.ear)
-            v = v.next
-        print(v, "i:", v.index, "coord:", v.coord, "ear", v.ear, "should be head")
-
-    def check_counter_clockwise(self):
-        """checks if vertex ordering is counterclockwise"""
-        current = self.head
-        right_most = current
-        current = current.next
-        while(self.head is not current):
-            print(current)
-            if current.coord[X] > right_most.coord[X]:
-                right_most = current
-            elif current.coord[X] == right_most.coord[X] and current.coord[Y] > right_most.coord[Y]:
-                right_most = current
-            current = current.next
-        return Left(right_most.prev.coord, right_most.coord, right_most.next.coord)
-
-    def reset_order(self):
-        """reverts polygon to original with original order"""
-        v2 = None
-        v1 = None
-        v0 = None
-        for i in [j for j in range(len(self.normal_vertex_list))] + [0, 1]:
-            # 3 width sliding window
-            v2 = v1
-            v1 = v0
-            v0 = self.normal_vertex_list[i]
-    
-            if v2 is not None:
-                v1.next = v0
-                v1.prev = v2
-        
-        self.vertex_list = self.normal_vertex_list
-        self.flipped = False
-
-    def flip_order(self):
-        """reverts polygon to original with reversed order"""
-        v2 = None
-        v1 = None
-        v0 = None
-        for i in [j for j in range(len(self.flipped_vertex_list))] + [0, 1]:
-            # 3 width sliding window
-            v2 = v1
-            v1 = v0
-            v0 = self.flipped_vertex_list[i]
-
-            if v2 is not None:
-                v1.next = v0
-                v1.prev = v2
-                v0.index = i
-                self.vertex_list[i] = v0
-
-        self.flipped = True
-
-class Vertex:
-    
-    def __init__(self, x, y, index=None, prev=None, next=None):
-        self.index = index
-        self.coord = (x,y)
-        self.prev = prev
-        self.next = next
-        self.polygon = None
-        self.ear = None
-        
-    def get_polygon(self):
-        return self.polygon
-
-    def set_index(self, i):
-        self.index = i
-    
-    def __getitem__(self, item):
-        return self.coord[item]
-    
-    def __str__(self):
-        return str(self.index)
-    
-    def __int__(self):
-        return int(self.index)
-
-    def set_prev(self, p):
-        self.prev = p
-
-    def set_next(self, n):
-        self.next = n
-    
-    def set_polygon(self, poly):
-        self.polygon = poly
-        
-    def set_ear(self, b):
-        self.ear = b
-        
-    def print_loop(self, canvas=None):
-        """prints loop from the perspective of the vertex"""
-        first = self
-        # first_coord = first.coord
-        first_index = first.index
-        current = self
-        print(current, current.coord, current.index, "next:", current.next, "first", first_index, first)
-        ids = []  # keep track of ids from drawing
-        if canvas is not None:
-            id = draw_dot(canvas, current.coord[X], current.coord[Y], color="yellow", width=1, flip=True)
-            ids.append(id)
-        current = current.next
-        while(self is not current):
-            print(current, current.coord, current.index, "next:", current.next, "first", first_index, first)
-            if canvas is not None:
-                id = draw_dot(canvas, current.coord[X], current.coord[Y], color="yellow", width=1, flip=True)
-                ids.append(id)
-            current = current.next
-        return ids
-    
-    def make_copy(self):
-        c = Vertex(self.coord[X], self.coord[Y])
-        c.index = self.index
-        c.prev = self.prev
-        c.next = self.next
-        c.polygon = self.polygon
-        c.ear = self.ear
-        return c
-
-def points_to_polygon(l):
-    """takes in a list of 2D coordinates/tuples in a simple chain and returns a polygon"""
-    polygon = Polygon()
-    for i in l:
-        polygon.add_vertex(Vertex(i[X], i[Y]))
-    return polygon
-
 # Wrapper for a dict to be accessed like a 2d list
 class Table2D:
      def __init__(self):
@@ -574,8 +367,7 @@ class Table2D:
          s += "}"
          return s
 
-
-def MWTriangulation2b(polygon, canvas=None, flip=True):
+def MWTriangulation(polygon, canvas=None, flip=True):
     temp_flip = flip
     if flip:
         flip = -1
@@ -588,7 +380,7 @@ def MWTriangulation2b(polygon, canvas=None, flip=True):
     f_table = Table2D()  # for i, j this contains the metric value
     k_table = Table2D()  # for i, j this contains the k that had the best metric value
     
-    def mwt2b(i, j):
+    def mwt(i, j):
         """this method does not return anything, it just modifies the tables"""
         # check for same point
         if str(i) == str(j):
@@ -640,9 +432,9 @@ def MWTriangulation2b(polygon, canvas=None, flip=True):
             min_angle = min(angle1, angle2, angle3)
             
             if i.prev.index != k.index:
-                mwt2b(i, k)
+                mwt(i, k)
             if k.index != j.next.index:
-                mwt2b(k, j)
+                mwt(k, j)
             
             # after mwt2b the f_table should have answers, but if it doesn't a high value is used in place
             
@@ -676,31 +468,31 @@ def MWTriangulation2b(polygon, canvas=None, flip=True):
                                (int(y) + 1) % length_of_poly == int(x)
     
     # the result of the mwt are in the table, which must be traversed to return/draw the answer
-    def mwt2b_traverse(i, j):
+    def mwt_traverse(i, j):
         # the traversal mimics the recursion structure
         k = k_table[str(i)].get(str(j), None)
         if k is None:
             return
 
         if not is_adjacent(i, k):
-            print(i, k)
+            # print("diag", i, k)  # debug
             diags.append((str(i), str(k)))
             draw_line_from_index(int(i), int(k))
         if not is_adjacent(k, j):
-            print(k, j)
+            # print("diag", k, j)  # debug
             diags.append((str(k), str(j)))
             draw_line_from_index(int(k), int(j))
-        mwt2b_traverse(i, k)
-        mwt2b_traverse(k, j)
+        mwt_traverse(i, k)
+        mwt_traverse(k, j)
         return
     
-    mwt2b(polygon.head, polygon.head.next)
-    mwt2b_traverse(polygon.head, polygon.head.next)
+    mwt(polygon.head, polygon.head.next)
+    mwt_traverse(polygon.head, polygon.head.next)
     print(diags)  # final diags in the triangulation
     
     return ids
 
-def MWTriangulation2c_iter(polygon, canvas=None, flip=True):
+def MWTriangulation_iter(polygon, canvas=None, flip=True):
     temp_flip = flip
     if flip:
         flip = -1
@@ -717,7 +509,7 @@ def MWTriangulation2c_iter(polygon, canvas=None, flip=True):
     history = []
     pre_compute_list = []
     
-    def mwt2b(i, j, depth=0, max_depth=0):
+    def mwt(i, j, depth=0, max_depth=0):
         # this function returns the max_depth to aid in the visualization
         # this value does not help in filling out the tables or producing diagonals
         max_depth = max(max_depth, depth)
@@ -777,10 +569,10 @@ def MWTriangulation2c_iter(polygon, canvas=None, flip=True):
             # min_list = [min_angle]
             md1md2 = []
             if i.prev.index != k.index:
-                md1 = mwt2b(i, k, depth=depth+1, max_depth=max_depth)
+                md1 = mwt(i, k, depth=depth+1, max_depth=max_depth)
                 md1md2.append(md1)
             if k.index != j.next.index:
-                md2 = mwt2b(k, j, depth=depth+1, max_depth=max_depth)
+                md2 = mwt(k, j, depth=depth+1, max_depth=max_depth)
                 md1md2.append(md2)
             max_depth = max([max_depth]+md1md2)
             m1 = min_angle
@@ -794,9 +586,9 @@ def MWTriangulation2c_iter(polygon, canvas=None, flip=True):
                 best_k = k
         
         f_table[str(i)][str(j)] = metric
-        print("store best_k", i, j, best_k)
+        # print("store best_k", i, j, best_k)  # debug
         k_table[str(i)][str(j)] = str(best_k)
-        print("k_table", k_table)
+        # print("k_table", k_table)  # debug
         d_table[str(i)][str(j)] = min(d_table[str(i)].get(str(j), 9999), depth)
         history.append((str(i), str(j), depth, 'stored'))
 
@@ -805,7 +597,7 @@ def MWTriangulation2c_iter(polygon, canvas=None, flip=True):
     length_of_poly = len(polygon.vertex_list)
     diags = []
     
-    max_depth = mwt2b(polygon.head, polygon.head.next)
+    max_depth = mwt(polygon.head, polygon.head.next)
     print(diags)
     
     return k_table, history, max_depth#, optimal_triangulation_history
@@ -829,7 +621,7 @@ def draw_line_from_index(i, j, canvas, polygon, color="dark green", flip=True, a
         mwt_ids.append(id)
     return id
 
-def mwt2e_traverse(start_i, start_j, polygon, canvas, table, history, depth=None):
+def MWTriangulation_iter_traverse(start_i, start_j, polygon, canvas, table, history, depth=None):
 
     length_of_poly = len(polygon.vertex_list)
     
@@ -893,25 +685,28 @@ def mwt2e_traverse(start_i, start_j, polygon, canvas, table, history, depth=None
     
     temp_ids = []  # contains the ids of the current traversal
     temp2_ids = []  # contains the ids of the stored diagonals
-    print("history", history)
+    # print("history", history)  # debug
     for ind, x in enumerate(history):
-        # print("x", x)
         i, j, d, m = x
         
         print(ind, 'of', len(history))
-        print('i:', i, 'j:', j, ' ', m, ' d:', d)
+        print('i:', i, 'j:', j, ' d:', d, 'm:', m, end='')
         if d >= 1: # shift to prevent the drawing of initial starting boundary edge i, j
             current_diags[d-1] = (i, j, d-1)
             current_diags[d] = None
-        print("")
+        # print("")
         temp_ids = paint_current_diags(current_diags, remove_ids=temp_ids)
 
         r = temp_ids
         if m == 'stored':
             stored_diags = k_table_traverse(i, j)
-            print("stored_diags", k_table_traverse(i, j))
+            print(" - stored_diags", k_table_traverse(i, j))
             temp2_ids = paint_current_stored_triangulation(stored_diags, remove_ids=temp2_ids, color="turquoise2")
             r = temp2_ids
+        else:
+            # this prints a newline
+            print("")
+        
         yield r
 
     # removes the traversal
@@ -924,3 +719,208 @@ def mwt2e_traverse(start_i, start_j, polygon, canvas, table, history, depth=None
     yield True
 
 
+# Data Structures to support predicates
+class Polygon:
+    
+    def __init__(self):
+        # the polygon starts with zero points
+        self.head = None
+        self.temp_head = None
+        self.current = None
+        self.vertex_list = []
+        self.normal_vertex_list = []
+        self.flipped_vertex_list = []
+        self.flipped = False
+    
+    def get_head(self):
+        return self.head
+    
+    def get_vertex(self, i):
+        return self.vertex_list[i]
+    
+    def __getitem__(self, item):
+        return self.vertex_list[item]
+    
+    def add_vertex(self, v):
+        if len(self.vertex_list) < 1:
+            self.head = v
+            self.temp_head = v
+            self.current = v
+            self.vertex_list.append(v)
+            self.normal_vertex_list.append(v)
+            self.flipped_vertex_list.append(v)
+            v.set_index(0)
+            v.set_prev(v)
+            v.set_next(v)
+            v.set_polygon(self)
+        else:
+            # set index
+            v.set_index(len(self.vertex_list))
+            # add to master list
+            self.vertex_list.append(v)
+            self.normal_vertex_list.append(v)
+            self.flipped_vertex_list.insert(1, v)
+            # set reference to polygon object
+            v.set_polygon(self)
+            
+            current = self.current
+            next = self.current.next
+            new = v
+            
+            # set prev and next for new vertex
+            new.set_prev(current)
+            new.set_next(next)
+            # connect old prev and next to new vertex
+            current.set_next(new)
+            next.set_prev(new)
+            # set new current to new vertex
+            self.current = new
+    
+    def print_polygon(self):
+        """goes through self.vertex_list"""
+        print([v.index for v in self.vertex_list])
+        # print(v.index)
+    
+    def print_vertecies_iter(self):
+        """goes through loop starting from head"""
+        v = self.head
+        print(v, "i:", v.index, "coord:", v.coord, "ear", v.ear, "head")
+        v = v.next
+        while (v.index != 0):
+            print(v, "i:", v.index, "coord:", v.coord, "ear", v.ear)
+            v = v.next
+        print(v, "i:", v.index, "coord:", v.coord, "ear", v.ear, "should be head")
+    
+    def print_vertecies_temp_iter(self):
+        """goes through loop starting from temp_head, this is safer because Triangulate reassigns pointers"""
+        v = self.temp_head
+        print(v, "i:", v.index, "coord:", v.coord, "ear", v.ear, "head")
+        v = v.next
+        while (v.index != 0):
+            print(v, "i:", v.index, "coord:", v.coord, "ear", v.ear)
+            v = v.next
+        print(v, "i:", v.index, "coord:", v.coord, "ear", v.ear, "should be head")
+    
+    def check_counter_clockwise(self):
+        """checks if vertex ordering is counterclockwise"""
+        current = self.head
+        right_most = current
+        current = current.next
+        while (self.head is not current):
+            if current.coord[X] > right_most.coord[X]:
+                right_most = current
+            elif current.coord[X] == right_most.coord[X] and current.coord[Y] > right_most.coord[Y]:
+                right_most = current
+            current = current.next
+        return Left(right_most.prev.coord, right_most.coord, right_most.next.coord)
+    
+    def reset_order(self):
+        """reverts polygon to original with original order"""
+        v2 = None
+        v1 = None
+        v0 = None
+        for i in [j for j in range(len(self.normal_vertex_list))] + [0, 1]:
+            # 3 width sliding window
+            v2 = v1
+            v1 = v0
+            v0 = self.normal_vertex_list[i]
+            
+            if v2 is not None:
+                v1.next = v0
+                v1.prev = v2
+        
+        self.vertex_list = self.normal_vertex_list
+        self.flipped = False
+    
+    def flip_order(self):
+        """reverts polygon to original with reversed order"""
+        v2 = None
+        v1 = None
+        v0 = None
+        for i in [j for j in range(len(self.flipped_vertex_list))] + [0, 1]:
+            # 3 width sliding window
+            v2 = v1
+            v1 = v0
+            v0 = self.flipped_vertex_list[i]
+            
+            if v2 is not None:
+                v1.next = v0
+                v1.prev = v2
+                v0.index = i
+                self.vertex_list[i] = v0
+        
+        self.flipped = True
+
+
+class Vertex:
+    
+    def __init__(self, x, y, index=None, prev=None, next=None):
+        self.index = index
+        self.coord = (x, y)
+        self.prev = prev
+        self.next = next
+        self.polygon = None
+        self.ear = None
+    
+    def get_polygon(self):
+        return self.polygon
+    
+    def set_index(self, i):
+        self.index = i
+    
+    def __getitem__(self, item):
+        return self.coord[item]
+    
+    def __str__(self):
+        return str(self.index)
+    
+    def __int__(self):
+        return int(self.index)
+    
+    def set_prev(self, p):
+        self.prev = p
+    
+    def set_next(self, n):
+        self.next = n
+    
+    def set_polygon(self, poly):
+        self.polygon = poly
+    
+    def set_ear(self, b):
+        self.ear = b
+    
+    def print_loop(self, canvas=None):
+        """prints loop from the perspective of the vertex"""
+        first = self
+        # first_coord = first.coord
+        first_index = first.index
+        current = self
+        print(current, current.coord, current.index, "next:", current.next, "first", first_index, first)
+        ids = []  # keep track of ids from drawing
+        if canvas is not None:
+            id = draw_dot(canvas, current.coord[X], current.coord[Y], color="yellow", width=1, flip=True)
+            ids.append(id)
+        current = current.next
+        while (self is not current):
+            print(current, current.coord, current.index, "next:", current.next, "first", first_index, first)
+            if canvas is not None:
+                id = draw_dot(canvas, current.coord[X], current.coord[Y], color="yellow", width=1, flip=True)
+                ids.append(id)
+            current = current.next
+        return ids
+    
+    def make_copy(self):
+        c = Vertex(self.coord[X], self.coord[Y])
+        c.index = self.index
+        c.prev = self.prev
+        c.next = self.next
+        c.polygon = self.polygon
+        c.ear = self.ear
+        return c
+    
+def points_to_polygon(l):
+    """takes in a list of 2D coordinates/tuples in a simple chain and returns a polygon"""
+    polygon = Polygon()
+    for i in l:
+        polygon.add_vertex(Vertex(i[X], i[Y]))
+    return polygon

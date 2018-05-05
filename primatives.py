@@ -4,6 +4,7 @@
 from operator import xor
 from math import acos, sqrt, degrees
 from time import sleep
+from random import shuffle
 
 X = 0
 Y = 1
@@ -631,6 +632,9 @@ class Polygon:
 
     def flip_order(self):
         # reverts polygon to original with reversed order
+        v2f = None
+        v1f = None
+        v0f = None
         v2 = None
         v1 = None
         v0 = None
@@ -644,8 +648,14 @@ class Polygon:
                 v1.next = v0
                 v1.prev = v2
                 v0.index = i
+                self.vertex_list[i] = v0
+
+            # if v2 is not None:
+            #     v1.next = v0
+            #     v1.prev = v2
+            #     v0.index = i
                 
-        self.vertex_list = self.flipped_vertex_list
+        # self.vertex_list = self.flipped_vertex_list
         self.flipped = True
 
 
@@ -791,15 +801,19 @@ def MWTriangulation2(polygon, canvas=None, flip=True):
             # check for i or j being the same as current
             if str(current) == str(i) or str(current) == str(j):
                 continue
-            # check1 = Left(i, j, current)
-            # check2 = Diagonal(i, current)
-            # check3 = Diagonal(current, j)
-            # check4 = str(i.prev) == str(current)
-            # check5 = str(j.next) == str(current)
-            # if check1 and (check2 or check4) and (check3 or check5):
-            if Left(i, j, current) and \
-                (str(i.prev) == str(current) or Diagonal(i, current)) \
-                and (str(j.next) == str(current) or Diagonal(current, j)):
+            check1 = Left(i, j, current)
+            check2 = False
+            check3 = False
+            check4 = str(i.prev) == str(current)
+            check5 = str(j.next) == str(current)
+            if not check4:
+                check2 = Diagonal(i, current)
+            if not check5:
+                check3 = Diagonal(current, j)
+            if check1 and (check2 or check4) and (check3 or check5):
+            # if Left(i, j, current) and \
+            #     (str(i.prev) == str(current) or Diagonal(i, current)) \
+            #     and (str(j.next) == str(current) or Diagonal(current, j)):
                 ks.append(current)
 
             current = current.prev  # iterate to next vertex (, prev in this case)
@@ -878,4 +892,633 @@ def MWTriangulation2(polygon, canvas=None, flip=True):
     print(diags)
 
     return ids
+
+
+def MWTriangulation2b(polygon, canvas=None, flip=True):
+    temp_flip = flip
+    if flip:
+        flip = -1
+    else:
+        flip = 1
     
+    final_diags = []
+    ids = []
+    
+    f_table = Table2D()  # for i, j this contains the metric value
+    k_table = Table2D()  # for i, j this contains the k that had the best metric value
+    
+    def mwt2b(i, j):
+        # TODO - draw something
+        
+        # check for same point
+        if str(i) == str(j):
+            # f_table[str(i)][str(j)] = 99999
+            # k_table[str(i)][str(j)] = None
+            print("i and j are the same")
+            print("### this should not happend ###")
+            return  #
+        
+        pre_compute = k_table[str(i)].get(str(j), None)
+        # print("pre_compute", i, j, pre_compute)
+        if pre_compute is not None:
+            # print(i, j, f_table[str(i)][str(j)], k_table[str(i)][str(j)])
+            return
+        
+        # find all potential k's
+        ks = []
+        # loop around i.prev.prev. ... until j is reached
+        current = i.prev  # starting point for loop
+        while str(current) != str(j):  # end if current == j
+            # check for i or j being the same as current
+            if str(current) == str(i) or str(current) == str(j):
+                continue
+            check1 = Left(i, j, current)
+            check2 = False
+            check3 = False
+            check4 = str(i.prev) == str(current)
+            check5 = str(j.next) == str(current)
+            if not check4:
+                check2 = Diagonal(i, current)
+            if not check5:
+                check3 = Diagonal(current, j)
+            if check1 and (check2 or check4) and (check3 or check5):
+                # if Left(i, j, current) and \
+                #     (str(i.prev) == str(current) or Diagonal(i, current)) \
+                #     and (str(j.next) == str(current) or Diagonal(current, j)):
+                ks.append(current)
+            
+            current = current.prev  # iterate to next vertex (, prev in this case)
+        
+        if len(ks) == 0:
+            # print("empty ks")
+            # print("### this should not happend ###")
+            return
+        
+        # sort ks by min angle
+        def minimum_angle(k):
+            angle1 = angle(i.coord, j.coord, k.coord)
+            angle2 = angle(k.coord, i.coord, j.coord)
+            angle3 = angle(j.coord, k.coord, i.coord)
+            min_angle = min(angle1, angle2, angle3)
+            return min_angle
+        
+        # print(ks)
+        # ks.sort(key=minimum_angle)
+        # print(ks)
+        # shuffle(ks)
+
+        metric = 0
+        best_k = None
+        for k in ks:
+            # calculation for current k
+            angle1 = angle(i.coord, j.coord, k.coord)
+            angle2 = angle(k.coord, i.coord, j.coord)
+            angle3 = angle(j.coord, k.coord, i.coord)
+            min_angle = min(angle1, angle2, angle3)
+            
+            # min_list = [min_angle]
+            if i.prev.index != k.index:
+                mwt2b(i, k)
+            if k.index != j.next.index:
+                mwt2b(k, j)
+            
+            m1 = min_angle
+            # m2 = f_table[i].get(k, 1000000)
+            # m3 = f_table[k].get(j, 1000000)
+            m2 = f_table[str(i)].get(str(k), 1000000)
+            m3 = f_table[str(k)].get(str(j), 1000000)
+            # temp = min(min_angle, f_table[i].get([k], 1000000), f_table[k].get([j], 1000000))
+            smallest_angle = min(m1, m2, m3)
+            if smallest_angle > metric:
+                # if the minimum angle is larger with this k
+                # then set the new metric and best_k
+                metric = smallest_angle
+                best_k = k
+        
+        f_table[str(i)][str(j)] = metric
+        k_table[str(i)][str(j)] = str(best_k)
+        # k_table[str(i)][str(j)] = best_k
+        return
+    
+    length_of_poly = len(polygon.vertex_list)
+    diags = []
+    
+    def draw_line_from_index(i, j):
+        vi = polygon[i]
+        vj = polygon[j]
+        if canvas is not None:
+            id = canvas.create_line(vi[X], flip * vi[Y], vj[X], flip * vj[Y], fill="dark green")
+            ids.append(id)
+        # diags.append((vi, vj))
+    
+    def mwt2b_traverse(i, j):
+        k = k_table[str(i)].get(str(j), None)
+        if k is None:
+            return
+        is_adjacent = lambda x, y: (int(x) + 1) % length_of_poly == int(y) or \
+                                   (int(y) + 1) % length_of_poly == int(x)
+        # print(i, j, k)
+        if not is_adjacent(i, k):
+            print(i, k)
+            diags.append((str(i), str(k)))
+            draw_line_from_index(int(i), int(k))
+        if not is_adjacent(k, j):
+            print(k, j)
+            diags.append((str(k), str(j)))
+            draw_line_from_index(int(k), int(j))
+        mwt2b_traverse(i, k)
+        mwt2b_traverse(k, j)
+        return
+    
+    mwt2b(polygon.head, polygon.head.next)
+    mwt2b_traverse(polygon.head, polygon.head.next)  # , first_call=True)
+    print(diags)
+    
+    return ids
+
+f_table = Table2D()  # for i, j this contains the metric value
+k_table = Table2D()  # for i, j this contains the k that had the best metric value
+
+
+def MWTriangulation2c_iter(polygon, canvas=None, flip=True):
+    temp_flip = flip
+    if flip:
+        flip = -1
+    else:
+        flip = 1
+    
+    final_diags = []
+    ids = []
+    
+    # max_depth = 0
+    f_table = Table2D()  # for i, j this contains the metric value
+    k_table = Table2D()  # for i, j this contains the k that had the best metric value
+    d_table = Table2D()  # for i, j stores the depth
+    history = []
+    pre_compute_list = []
+    # optimal_triangulation_history = []
+    
+    # is_adjacent = lambda x, y: (int(x) + 1) % length_of_poly == int(y) or \
+    #                            (int(y) + 1) % length_of_poly == int(x)
+
+    
+    def mwt2b(i, j, depth=0, max_depth=0):
+        # TODO - draw something
+        max_depth = max(max_depth, depth)
+        history.append((str(i), str(j), depth, 'traverse'))
+        
+        # def k_table_traverse(i=str(polygon.head) , j=str(polygon.head.next), length_of_poly=len(polygon.vertex_list)):
+        #     k = k_table[i].get(j, None)
+        #     if k is None:
+        #         return []
+        #     else:
+        #         is_adjacent = lambda x, y: (int(x) + 1) % length_of_poly == int(y) or (int(y) + 1) % length_of_poly == int(x)
+        #         d = []
+        #         if not is_adjacent(i, k):
+        #             d.append((i, k))
+        #         if not is_adjacent(k, j):
+        #             d.append((k, j))
+        #         return d + k_table_traverse(i, k) + k_table_traverse(k, j)
+
+        # temp_historical_diags = k_table_traverse()
+        # print("temp_historical_diags", temp_historical_diags)
+        # optimal_triangulation_history.append(temp_historical_diags)
+        
+        # h_len = len(history)-1
+        
+        # check for same point
+        if str(i) == str(j):
+            # f_table[str(i)][str(j)] = 99999
+            # k_table[str(i)][str(j)] = None
+            print("i and j are the same")
+            print("### this should not happen ###")
+            # return  #
+            return max_depth
+        # elif is_adjacent(str(i), str(j)):
+        #     print("i and j are adjacent")
+        #     print("### this should not happen ###")
+        #     # return  #
+        #     return max_depth
+
+        pre_compute = k_table[str(i)].get(str(j), None)
+        print("pre_compute", i, j, pre_compute)
+        if pre_compute is not None:
+            print(i, j, f_table[str(i)][str(j)], k_table[str(i)][str(j)])
+            pre_compute_list.append((str(i), str(j)))
+            return max_depth
+
+        # find all potential k's
+        ks = []
+        # loop around i.prev.prev. ... until j is reached
+        current = i.prev  # starting point for loop
+        while str(current) != str(j):  # end if current == j
+            # check for i or j being the same as current
+            if str(current) == str(i) or str(current) == str(j):
+                continue
+            check1 = Left(i, j, current)
+            check2 = False
+            check3 = False
+            check4 = str(i.prev) == str(current)
+            check5 = str(j.next) == str(current)
+            if not check4:
+                check2 = Diagonal(i, current)
+            if not check5:
+                check3 = Diagonal(current, j)
+            if check1 and (check2 or check4) and (check3 or check5):
+                # if Left(i, j, current) and \
+                #     (str(i.prev) == str(current) or Diagonal(i, current)) \
+                #     and (str(j.next) == str(current) or Diagonal(current, j)):
+                ks.append(current)
+            
+            current = current.prev  # iterate to next vertex (, prev in this case)
+        
+        if len(ks) == 0:
+            # print("empty ks")
+            # print("### this should not happend ###")
+            # return
+            return max_depth
+
+        # sort ks by min angle
+        # def minimum_angle(k):
+        #     angle1 = angle(i.coord, j.coord, k.coord)
+        #     angle2 = angle(k.coord, i.coord, j.coord)
+        #     angle3 = angle(j.coord, k.coord, i.coord)
+        #     min_angle = min(angle1, angle2, angle3)
+        #     return min_angle
+        
+        # print(ks)
+        # ks.sort(key=minimum_angle)
+        # print(ks)
+        # shuffle(ks)
+        
+        metric = 0
+        best_k = None
+        for k in ks:
+            # calculation for current k
+            angle1 = angle(i.coord, j.coord, k.coord)
+            angle2 = angle(k.coord, i.coord, j.coord)
+            angle3 = angle(j.coord, k.coord, i.coord)
+            min_angle = min(angle1, angle2, angle3)
+            
+            # min_list = [min_angle]
+            md1md2 = []
+            if i.prev.index != k.index:
+                md1 = mwt2b(i, k, depth=depth+1, max_depth=max_depth)
+                md1md2.append(md1)
+            if k.index != j.next.index:
+                md2 = mwt2b(k, j, depth=depth+1, max_depth=max_depth)
+                md1md2.append(md2)
+            max_depth = max([max_depth]+md1md2)
+            m1 = min_angle
+            # m2 = f_table[i].get(k, 1000000)
+            # m3 = f_table[k].get(j, 1000000)
+            m2 = f_table[str(i)].get(str(k), 1000000)
+            m3 = f_table[str(k)].get(str(j), 1000000)
+            # temp = min(min_angle, f_table[i].get([k], 1000000), f_table[k].get([j], 1000000))
+            smallest_angle = min(m1, m2, m3)
+            if smallest_angle > metric:
+                # if the minimum angle is larger with this k
+                # then set the new metric and best_k
+                metric = smallest_angle
+                best_k = k
+        
+        # history.insert(h_len, "best")
+        f_table[str(i)][str(j)] = metric
+        print("store best_k", i, j, best_k)
+        k_table[str(i)][str(j)] = str(best_k)
+        print("k_table", k_table)
+        d_table[str(i)][str(j)] = min(d_table[str(i)].get(str(j), 9999), depth)
+        history.append((str(i), str(j), depth, 'stored'))
+
+
+        # d_table[str(i)][str(best_k)] = depth
+        # d_table[str(best_k)][str(j)] = depth
+        # k_table[str(i)][str(j)] = best_k
+        # return
+        return max_depth
+
+    length_of_poly = len(polygon.vertex_list)
+    diags = []
+    
+
+    max_depth = mwt2b(polygon.head, polygon.head.next)
+    # mwt2c_traverse(polygon.head, polygon.head.next)  # , first_call=True)
+    print(diags)
+    
+    return k_table, history, max_depth#, optimal_triangulation_history
+
+mwt_ids = []
+def draw_line_from_index(i, j, canvas, polygon, color="dark green", flip=True, arrow=False):
+    from tkinter import LAST
+    temp_flip = flip
+    if flip:
+        flip = -1
+    else:
+        flip = 1
+    
+    vi = polygon[i]
+    vj = polygon[j]
+    if canvas is not None:
+        if arrow:
+            id = canvas.create_line(vi[X], flip * vi[Y], vj[X], flip * vj[Y], fill=color, arrow=LAST)
+        else:
+            id = canvas.create_line(vi[X], flip * vi[Y], vj[X], flip * vj[Y], fill=color)
+        mwt_ids.append(id)
+    return id
+    # diags.append((vi, vj))
+
+def mwt2c_traverse(i, j, polygon, canvas, first=False, table=None):
+    print("mwt2c", i, j)
+    if table is not None:
+        k_table = table
+    length_of_poly = len(polygon.vertex_list)
+    k = k_table[str(i)].get(str(j), None)
+    if k is not None:
+    #     pass
+    # else:
+        is_adjacent = lambda x, y: (int(x) + 1) % length_of_poly == int(y) or \
+                                   (int(y) + 1) % length_of_poly == int(x)
+        # print(i, j, k)
+        id1, id2 = None, None
+        if not is_adjacent(i, k):
+            print(i, k)
+            # diags.append((str(i), str(k)))
+            id1 = draw_line_from_index(int(i), int(k), canvas, polygon)
+            yield id1
+        if not is_adjacent(k, j):
+            print(k, j)
+            # diags.append((str(k), str(j)))
+            id2 = draw_line_from_index(int(k), int(j), canvas, polygon)
+            yield id2
+        mwt2c_traverse(i, k, polygon, canvas, table=table)
+        mwt2c_traverse(k, j, polygon, canvas, table=table)
+    if first:
+        yield True
+    # return
+
+def mwt2d_traverse(start_i, start_j, polygon, canvas, table, history=None):
+    # print("mwt2c", i, j)
+    # if table is not None:
+    #     k_table = table
+    length_of_poly = len(polygon.vertex_list)
+
+    is_adjacent = lambda x, y: (int(x) + 1) % length_of_poly == int(y) or \
+                               (int(y) + 1) % length_of_poly == int(x)
+
+    i = start_i
+    j = start_j
+    
+    # s = [(start_i, start_j)]
+    # # do_while = True
+    # while len(s) > 0:# or do_while:
+    #     # do_while = False
+    #     i, j = s.pop()
+    #     k = table[str(i)].get(str(j), None)
+    #     id4 = draw_line_from_index(int(i), int(j), canvas, polygon, color="blue")
+    #
+    #     if k is not None:
+    #         id1, id2 = None, None
+    #         if not is_adjacent(i, k):
+    #             print(i, k)
+    #             # diags.append((str(i), str(k)))
+    #             id1 = draw_line_from_index(int(i), int(k), canvas, polygon, color="yellow")
+    #             yield id1
+    #         s.append((i, k))
+    #         if not is_adjacent(k, j):
+    #             print(k, j)
+    #             # diags.append((str(k), str(j)))
+    #             id2 = draw_line_from_index(int(k), int(j), canvas, polygon, color="yellow")
+    #             yield id2
+    #         s.append((k, j))
+    #     else:
+    #         print("no k", i, j)
+    #         id3 = draw_line_from_index(int(i), int(j), canvas, polygon, color="green")
+    #         yield id3
+    # yield True
+
+
+    if history is not None:
+        for t in history:
+            id1 = draw_line_from_index(int(t[X]), int(t[Y]), canvas, polygon, color="orange")
+            yield id1
+
+
+    # if k is not None:
+    # #     pass
+    # # else:
+    #     is_adjacent = lambda x, y: (int(x) + 1) % length_of_poly == int(y) or \
+    #                                (int(y) + 1) % length_of_poly == int(x)
+    #     # print(i, j, k)
+    #     id1, id2 = None, None
+    #     if not is_adjacent(i, k):
+    #         print(i, k)
+    #         # diags.append((str(i), str(k)))
+    #         id1 = draw_line_from_index(int(i), int(k), canvas, polygon)
+    #         yield id1
+    #     if not is_adjacent(k, j):
+    #         print(k, j)
+    #         # diags.append((str(k), str(j)))
+    #         id2 = draw_line_from_index(int(k), int(j), canvas, polygon)
+    #         yield id2
+    #     mwt2c_traverse(i, k, polygon, canvas, table=table)
+    #     mwt2c_traverse(k, j, polygon, canvas, table=table)
+    # if first:
+    #     yield True
+    # return
+
+
+def mwt2e_traverse(start_i, start_j, polygon, canvas, table, history, depth=None): #, optimal_triangulation_history=None):
+    # print("mwt2c", i, j)
+    # if table is not None:
+    #     k_table = table
+    length_of_poly = len(polygon.vertex_list)
+    
+    is_adjacent = lambda x, y: (int(x) + 1) % length_of_poly == int(y) or \
+                               (int(y) + 1) % length_of_poly == int(x)
+    
+    i = start_i
+    j = start_j
+    
+    # colors = None
+    print("depth", depth)
+    if depth is not None:
+        colors = ['gray'+str(i) for i in range(int((100%(depth+2))/2), 100, int(100/(depth+2)))][1:-1]
+        colors = [temp for temp in reversed(colors)]
+        current_diags = [None for i in range(depth+1)]
+    
+    def paint_current_diags(current_diags, remove_ids=[]):
+        for id in remove_ids:
+            canvas.after(1, canvas.delete, id)
+        ids = []
+        for x in current_diags:
+            if x is None:
+                break
+            else:
+                i, j, d = x
+                id = draw_line_from_index(int(i), int(j), canvas, polygon, color=colors[d], arrow=True)
+                ids.append(id)
+        return ids
+
+    def k_table_traverse(i=str(polygon.head), j=str(polygon.head.next), length_of_poly=len(polygon.vertex_list)):
+        k = table[i].get(j, None)
+        if k is None:
+            return []
+        else:
+            is_adjacent = lambda x, y: (int(x) + 1) % length_of_poly == int(y) or (int(y) + 1) % length_of_poly == int(
+                x)
+            d = []
+            if not is_adjacent(i, k):
+                d.append((i, k))
+            if not is_adjacent(k, j):
+                d.append((k, j))
+            return d + k_table_traverse(i, k) + k_table_traverse(k, j)
+    
+    def paint_current_stored_triangulation(current_diags, remove_ids=[], color="green"):
+        for id in remove_ids:
+            canvas.after(1, canvas.delete, id)
+        ids = []
+        for x in current_diags:
+            if x is None:
+                break
+            else:
+                i, j = x
+                id = draw_line_from_index(int(i), int(j), canvas, polygon, color=color)
+                ids.append(id)
+        return ids
+    
+    # s = [(start_i, start_j)]
+    # # do_while = True
+    # while len(s) > 0:# or do_while:
+    #     # do_while = False
+    #     i, j = s.pop()
+    #     k = table[str(i)].get(str(j), None)
+    #     id4 = draw_line_from_index(int(i), int(j), canvas, polygon, color="blue")
+    #
+    #     if k is not None:
+    #         id1, id2 = None, None
+    #         if not is_adjacent(i, k):
+    #             print(i, k)
+    #             # diags.append((str(i), str(k)))
+    #             id1 = draw_line_from_index(int(i), int(k), canvas, polygon, color="yellow")
+    #             yield id1
+    #         s.append((i, k))
+    #         if not is_adjacent(k, j):
+    #             print(k, j)
+    #             # diags.append((str(k), str(j)))
+    #             id2 = draw_line_from_index(int(k), int(j), canvas, polygon, color="yellow")
+    #             yield id2
+    #         s.append((k, j))
+    #     else:
+    #         print("no k", i, j)
+    #         id3 = draw_line_from_index(int(i), int(j), canvas, polygon, color="green")
+    #         yield id3
+    # yield True
+    
+    diags = []
+
+    # s = [(start_i, start_j)]
+    # while len(s) > 0:
+    #     i, j = s.pop()
+    #     k = table[str(i)].get(str(j), None)
+    #
+    #     if k is not None:
+    #         if not is_adjacent(i, k):
+    #             print(i, k)
+    #             diags.append((str(i), str(k), d_table[i].get(k, None)))
+    #             # diags.append((str(i), str(k)))#, d_table[i].get(k, None)))
+    #         s.append((i, k))
+    #         if not is_adjacent(k, j):
+    #             print(k, j)
+    #             diags.append((str(k), str(j), d_table[k].get(j, None)))
+    #             # diags.append((str(k), str(j)))#, d_table[k].get(j, None)))
+    #         s.append((k, j))
+    #     else:
+    #         print("no k", i, j)
+    
+    id_temp = None
+    temp_ids = []
+    temp2_ids = []
+    print("diags", diags)
+    print("history", history)
+    best = False
+    for ind, x in enumerate(history):
+        print("x", x)
+        # print("oth", optimal_triangulation_history[ind])
+        # if x == "best":
+        #     best = True
+        #     continue
+        # i, j = x
+        i, j, d, m = x
+        
+        print(ind, 'of', len(history))
+        print('i:',i,'j:',j, 'd', d)
+        if d >= 1: # shift to prevent the drawing of initial starting boundary edge i, j
+            current_diags[d-1] = (i, j, d-1)
+            current_diags[d] = None
+        # print("best", best)
+        print("")
+        # if id_temp is not None:
+        #     canvas.after(1, canvas.delete, id_temp)
+        # id_temp = draw_line_from_index(int(i), int(j), canvas, polygon, color="orange")
+        temp_ids = paint_current_diags(current_diags, remove_ids=temp_ids)
+        # temp2_ids = paint_current_optimal_triangulation(optimal_triangulation_history[ind], remove_ids=temp2_ids)
+
+        # r = id_temp
+        r = temp_ids
+        if m == 'stored':
+            stored_diags = k_table_traverse(i, j)
+            print("stored_diags", k_table_traverse(i, j))
+            temp2_ids = paint_current_stored_triangulation(stored_diags, remove_ids=temp2_ids)
+            r = temp2_ids
+        # if (i, j) in diags:
+        # # if best:
+        #     r = draw_line_from_index(int(i), int(j), canvas, polygon, color="green")
+        #     r = [r]
+
+        #     best = False
+        # yield r
+        yield r
+    if id_temp is not None:
+        canvas.after(1, canvas.delete, id_temp)
+    paint_current_diags([], remove_ids=temp_ids)
+    temp2_ids = paint_current_stored_triangulation(k_table_traverse(), remove_ids=temp2_ids, color="blue")
+    r = temp2_ids
+    yield r
+    # paint_current_optimal_triangulation(optimal_triangulation_history[ind], remove_ids=temp2_ids, color="blue")
+    
+    
+    
+    # s = [(start_i, start_j)]
+    # # do_while = True
+    # ids = []
+    # while len(s) > 0:# or do_while:
+    #     # do_while = False
+    #     i, j = s.pop()
+    #     k = table[str(i)].get(str(j), None)
+    #     # id4 = draw_line_from_index(int(i), int(j), canvas, polygon, color="blue")
+    #
+    #     if k is not None:
+    #         id1, id2 = None, None
+    #         if not is_adjacent(i, k):
+    #             print(i, k)
+    #             # diags.append((str(i), str(k)))
+    #             id1 = draw_line_from_index(int(i), int(k), canvas, polygon, color="green")
+    #             ids.append(id1)
+    #         s.append((i, k))
+    #         if not is_adjacent(k, j):
+    #             print(k, j)
+    #             # diags.append((str(k), str(j)))
+    #             id2 = draw_line_from_index(int(k), int(j), canvas, polygon, color="green")
+    #             ids.append(id2)
+    #         s.append((k, j))
+    #     # else:
+    #     #     print("no k", i, j)
+    #     #     id3 = draw_line_from_index(int(i), int(j), canvas, polygon, color="green")
+    #     #     yield id3
+    # print("ids", ids)
+    # yield ids
+    
+    
+    yield True
+
+

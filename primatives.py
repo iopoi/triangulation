@@ -134,7 +134,7 @@ def draw_dot(canvas, x, y, remove_id=None, color="green", width=2, flip=False):
     # there is an option to remove a line
     if remove_id is not None:
         # canvas.after(1, canvas.delete, remove_id)
-        canvas.after(300, canvas.delete, remove_id)
+        canvas.after(500, canvas.delete, remove_id)
 
     id = canvas.create_oval(x - 5, flip*y - 5, x + 5, flip*y + 5, fill=color, outline=color, width=width)
     print("dot", id, color, "coord:", x, flip*y)
@@ -176,7 +176,7 @@ def Triangulate(polygon, canvas=None, flip=True):
         print(n)
         
         v2 = polygon.temp_head
-        debug_v2_id = draw_dot(canvas, v2.coord[X], v2.coord[Y], color="red", remove_id=debug_v2_id, flip=temp_flip)
+        debug_v2_id = draw_dot(canvas, v2.coord[X], v2.coord[Y], color="firebrick3", remove_id=debug_v2_id, flip=temp_flip)
         earfound = False
         
         do_while_flag = True
@@ -194,7 +194,7 @@ def Triangulate(polygon, canvas=None, flip=True):
                 # PrintDiagonal( v1, v3 )
                 print("diag", v1.coord, v3.coord)
                 if canvas is not None:
-                    id = canvas.create_line(v1.coord[X], flip*v1.coord[Y], v3.coord[X], flip*v3.coord[Y], fill="dark green")
+                    id = canvas.create_line(v1.coord[X], flip*v1.coord[Y], v3.coord[X], flip*v3.coord[Y], fill="forest green")
                     ids.append(id)
                 diags.append((v1, v3))
                 
@@ -210,7 +210,7 @@ def Triangulate(polygon, canvas=None, flip=True):
                 break  # out of inner loop; resume outer loop
                 # end if ear found
             v2 = v2.next
-            debug_v2_id = draw_dot(canvas, v2.coord[X], v2.coord[Y], color="red", remove_id=debug_v2_id, flip=temp_flip)
+            debug_v2_id = draw_dot(canvas, v2.coord[X], v2.coord[Y], color="firebrick3", remove_id=debug_v2_id, flip=temp_flip)
 
         print("debug - internal ploygon of size", n)
         polygon.temp_head.print_loop()
@@ -267,7 +267,7 @@ def iter_Triangulate(polygon, canvas=None, flip=True):
         print(n)
         
         v2 = polygon.temp_head
-        debug_v2_id = draw_dot(canvas, v2.coord[X], v2.coord[Y], color="red", remove_id=debug_v2_id, flip=temp_flip)
+        debug_v2_id = draw_dot(canvas, v2.coord[X], v2.coord[Y], color="firebrick3", remove_id=debug_v2_id, flip=temp_flip)
         earfound = False
         
         do_while_flag = True
@@ -287,8 +287,8 @@ def iter_Triangulate(polygon, canvas=None, flip=True):
                 id = None
                 if canvas is not None:
                     id = canvas.create_line(v1.coord[X], flip * v1.coord[Y], v3.coord[X], flip * v3.coord[Y],
-                                       fill="dark green")
-                yield((v1, v3), id)
+                                       fill="green3")
+                yield((v1, v3), [id, debug_v2_id])
                 
                 # Update earity of diagonal endpoints
                 v1.ear = Diagonal(v0, v3)
@@ -302,7 +302,7 @@ def iter_Triangulate(polygon, canvas=None, flip=True):
                 break  # out of inner loop; resume outer loop
                 # end if ear found
             v2 = v2.next
-            debug_v2_id = draw_dot(canvas, v2.coord[X], v2.coord[Y], color="red", remove_id=debug_v2_id, flip=temp_flip)
+            debug_v2_id = draw_dot(canvas, v2.coord[X], v2.coord[Y], color="firebrick3", remove_id=debug_v2_id, flip=temp_flip)
         
         print("debug - internal ploygon of size", n)
         polygon.temp_head.print_loop()
@@ -1007,7 +1007,7 @@ def MWTriangulation2b(polygon, canvas=None, flip=True):
         vi = polygon[i]
         vj = polygon[j]
         if canvas is not None:
-            id = canvas.create_line(vi[X], flip * vi[Y], vj[X], flip * vj[Y], fill="dark green")
+            id = canvas.create_line(vi[X], flip * vi[Y], vj[X], flip * vj[Y], fill="dodger blue")
             ids.append(id)
         # diags.append((vi, vj))
     
@@ -1208,7 +1208,7 @@ def MWTriangulation2c_iter(polygon, canvas=None, flip=True):
     return k_table, history, max_depth#, optimal_triangulation_history
 
 mwt_ids = []
-def draw_line_from_index(i, j, canvas, polygon, color="dark green", flip=True, arrow=False):
+def draw_line_from_index(i, j, canvas, polygon, color="dark green", flip=True, arrow=False, width=2):
     from tkinter import LAST
     temp_flip = flip
     if flip:
@@ -1220,7 +1220,7 @@ def draw_line_from_index(i, j, canvas, polygon, color="dark green", flip=True, a
     vj = polygon[j]
     if canvas is not None:
         if arrow:
-            id = canvas.create_line(vi[X], flip * vi[Y], vj[X], flip * vj[Y], fill=color, arrow=LAST)
+            id = canvas.create_line(vi[X], flip * vi[Y], vj[X], flip * vj[Y], fill=color, arrow=LAST, width=width)
         else:
             id = canvas.create_line(vi[X], flip * vi[Y], vj[X], flip * vj[Y], fill=color)
         mwt_ids.append(id)
@@ -1468,7 +1468,7 @@ def mwt2e_traverse(start_i, start_j, polygon, canvas, table, history, depth=None
         if m == 'stored':
             stored_diags = k_table_traverse(i, j)
             print("stored_diags", k_table_traverse(i, j))
-            temp2_ids = paint_current_stored_triangulation(stored_diags, remove_ids=temp2_ids)
+            temp2_ids = paint_current_stored_triangulation(stored_diags, remove_ids=temp2_ids, color="turquoise2")
             r = temp2_ids
         # if (i, j) in diags:
         # # if best:
@@ -1481,7 +1481,7 @@ def mwt2e_traverse(start_i, start_j, polygon, canvas, table, history, depth=None
     if id_temp is not None:
         canvas.after(1, canvas.delete, id_temp)
     paint_current_diags([], remove_ids=temp_ids)
-    temp2_ids = paint_current_stored_triangulation(k_table_traverse(), remove_ids=temp2_ids, color="blue")
+    temp2_ids = paint_current_stored_triangulation(k_table_traverse(), remove_ids=temp2_ids, color="DeepSkyBlue3")
     r = temp2_ids
     yield r
     # paint_current_optimal_triangulation(optimal_triangulation_history[ind], remove_ids=temp2_ids, color="blue")

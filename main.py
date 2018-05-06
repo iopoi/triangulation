@@ -46,8 +46,8 @@ class App:
         # key/mouse bindings
         main.bind('<Button 1>', self.click)
         main.bind('<Motion>', self.motion)
-
-
+    
+    
     # reset methods - active on button click
     
     def reset_triangulation(self):
